@@ -30,7 +30,7 @@ Since python needs access to the usb device, it might require appropriate UDEV r
 Running this should add the required UDEV rules for normal usage without sudo, a restart will most like be required for the changes to take effect.
 
 ```
-echo "SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"18f8\", ATTRS{idProduct}==\"1086\", GROUP=\"users\", MODE=\"0660\"" | sudo tee /etc/udev/rules.d/50-fantechdriver.rules
+echo "SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"18f8\", ATTRS{idProduct}==\"0fc0\", GROUP=\"users\", MODE=\"0660\"" | sudo tee /etc/udev/rules.d/50-fantechdriver.rules
 ```
 
 This requires your system to have a group called `users` and your current user also needs to be added to the group. You could also modify the above command to add the permission to a group you're already a part of by modifiying "users" to the appropriate group name.

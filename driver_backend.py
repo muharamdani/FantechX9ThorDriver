@@ -5,7 +5,7 @@ import usb.util
 class Driver(object):
     def __init__(self):
         self.x9_vendorid = 0x18f8  # vendorid
-        self.x9_productid = 0x1086  # productid
+        self.x9_productid = 0x0fc0  # productid
         self.bmRequestType = 0x21  # bmRequestType
         self.bRequest = 0x09  # bRequest
         self.wValue = 0x0307  # wValue
