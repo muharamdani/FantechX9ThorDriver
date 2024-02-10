@@ -130,3 +130,6 @@ dmypy.json
 
 # Config
 driver.conf
+
+# IDE
+.idea/

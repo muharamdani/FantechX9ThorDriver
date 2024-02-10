@@ -18,7 +18,7 @@ Some distros (like arch) also provide standalone packages that will install pyus
 ### Usage
 Simply clone the repo using git.
 
-`git clone https://github.com/GuessWhatBBQ/FantechX9ThorDriver.git`
+`git clone https://github.com/muharamdani/FantechX9ThorDriver.git`
 
 Run the file called driver_frontend.py using python
 

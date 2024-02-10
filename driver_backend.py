@@ -4,6 +4,7 @@ import usb.util
 
 class Driver(object):
     def __init__(self):
+        self.mouse = None
         self.x9_vendorid = 0x18f8  # vendorid
         self.x9_productid = 0x0fc0  # productid
         self.bmRequestType = 0x21  # bmRequestType
@@ -21,8 +22,7 @@ class Driver(object):
         self.supported_dpis = [200, 400, 600, 800, 1000, 1200, 1600, 2000, 2400, 3200, 4000, 4800]
 
     def initPayload(self, instruction_code):
-        payload = [0x07]
-        payload.append(instruction_code)
+        payload = [0x07, instruction_code]
         return payload
 
     def find_device(self):
@@ -36,7 +36,10 @@ class Driver(object):
             print(exception.strerror)
             if exception.errno == 13:
                 # usb.backend.libusb1.LIBUSB_ERROR_ACCESS as e
-                print("Try adding a udev rule for your mouse, follow the guide here https://wiki.archlinux.org/index.php/udev#Accessing_firmware_programmers_and_USB_virtual_comm_devicesrunning. Running as root will probably work too but not recommended")
+                print("Try adding a udev rule for your mouse, follow the guide here "
+                      "https://wiki.archlinux.org/index.php/udev"
+                      "#Accessing_firmware_programmers_and_USB_virtual_comm_devicesrunning. Running as root will "
+                      "probably work too but not recommended")
             return -1
         except AttributeError:
             print("Device not found. Try replugging")
@@ -51,7 +54,6 @@ class Driver(object):
             self.conquered = True
 
     def liberate(self):
-        self.conquered
         if self.conquered:
             try:
                 usb.util.release_interface(self.mouse, self.wIndex)
@@ -125,7 +127,7 @@ class Driver(object):
         return byte
 
     def set_dpi_this_profile(self, DPI, profile_to_modify):
-        '''DPI is set to the value that is closest to one of the mouse's supported values'''
+        """DPI is set to the value that is closest to one of the mouse's supported values"""
         internal_dpi = 0
         best_match_dpi = self.find_closest_dpi(DPI)
         if best_match_dpi >= 200 and best_match_dpi <= 1200:
@@ -171,23 +173,23 @@ class Driver(object):
         for supported in self.supported_dpis:
             temp_diff = DPI - supported
             # print(temp_diff if temp_diff > 0 else temp_diff * -1)
-            if (difference >= (temp_diff if temp_diff > 0 else temp_diff * -1)):
+            if difference >= (temp_diff if temp_diff > 0 else temp_diff * -1):
                 best_match = supported
                 difference = temp_diff
         return best_match
 
 
 class Driver_API(Driver):
-    '''The sole purpose of this class is to give the frontend access to the Driver
+    """The sole purpose of this class is to give the frontend access to the Driver
     class. Unless present the super().__init__ call defaults to the Gtk.Wondow
-    class according to the MRO'''
-    def __init__():
+    class according to the MRO"""
+    def __init__(self):
         super().__init__()
 
 
 # driver = Driver()
 # for i in range(200, 4801, 200):
-#     print(i, driver.find_closest_dpi(i))
+    # print(i, driver.find_closest_dpi(i))
 # driver.find_device()
 # driver.device_state()
 # payload = driver.create_color_profile_config(3, 255, 255, 255)
