@@ -5,7 +5,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 
-driver_api = driver_backend.Driver_API
+driver_api = driver_backend.DriverApi
 
 
 class driver_frontend(Gtk.Window, driver_api):
@@ -13,16 +13,32 @@ class driver_frontend(Gtk.Window, driver_api):
         super(driver_frontend, self).__init__()
         super(driver_api, self).__init__()
         self.set_title("FantechX9Thor")
-        self.set_default_size(500, 600)
+        self.set_default_size(500, 800)
 
         ########################################################################
         # Default Configs
         self.profile_dpi_configs = [200, 600, 1000, 1600, 2400, 4000]
         self.profile_states = [1, 1, 1, 1, 1, 1]
-        self.profile_color_configs = ["rgb(255,255,0)", "rgb(0,0,255)", "rgb(255,0,255)", "rgb(0,255,0)", "rgb(255,0,0)", "rgb(0,255,255)"]
+        self.profile_color_configs = [
+            "rgb(255,255,0)",
+            "rgb(0,0,255)",
+            "rgb(255,0,255)",
+            "rgb(0,255,0)",
+            "rgb(255,0,0)",
+            "rgb(0,255,255)"
+        ]
         self.current_active_profile = 3
         self.rgb_color_change_scheme = "Cyclic"
         self.current_scheme_timer = 1
+        self.current_scrollwheel_state = "Volume"
+        self.current_buttons_state = {
+            "left": "left",
+            "right": "right",
+            "middle": "middle",
+            "forward": "forward",
+            "backward": "backward"
+        }
+
         self.cyclic_colors = {"Yellow": 1, "Blue": 1, "Violet": 1, "Green": 1, "Red": 1, "Cyan": 1, "White": 1}
         ########################################################################
 
@@ -32,16 +48,7 @@ class driver_frontend(Gtk.Window, driver_api):
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add(self.vbox)
 
-        self.profiles = [Gtk.VBox(spacing=6) for i in range(6)]
-
-        self.profile_color_container = [Gdk.RGBA() for i in range(6)]
-        self.set_default_colors()
-        self.colors = [Gtk.ColorButton() for i in range(6)]
-        for i in range(6):
-            self.colors[i].connect("color-set", self.on_color_changed, i)
-            self.colors[i].set_rgba(self.profile_color_container[i])
-
-        self.dpis = [Gtk.Scale.new_with_range(Gtk.Orientation.VERTICAL, 200, 4800, 200) for i in range(6)]
+        self.dpis = [Gtk.Scale.new_with_range(Gtk.Orientation.VERTICAL, 200, 4800, 200) for _ in range(6)]
         for i in range(6):
             self.dpis[i].set_inverted(True)
             self.dpis[i].set_value(self.profile_dpi_configs[i])
@@ -49,26 +56,35 @@ class driver_frontend(Gtk.Window, driver_api):
             for j in self.supported_dpis:
                 self.dpis[i].add_mark(j, Gtk.PositionType.LEFT)
 
-        self.active_profiles = [Gtk.RadioButton() for i in range(6)]
+        self.profile_state = [Gtk.CheckButton() for _ in range(6)]
+        for i in range(6):
+            self.profile_state[i].set_active(True if self.profile_states[i] == 1 else False)
+            self.profile_state[i].connect("toggled", self.on_state_toggled, i)
+            self.profile_state[i].set_halign(Gtk.Align.CENTER)
+
+        self.profile_name = [Gtk.Label() for _ in range(6)]
+        for i in range(6):
+            label = "Profile " + str(i + 1)
+            self.profile_name[i].set_label(label)
+
+        self.active_profiles = [Gtk.RadioButton() for _ in range(6)]
         for i in range(6):
             self.active_profiles[i].join_group(self.active_profiles[0])
             self.active_profiles[i].set_halign(Gtk.Align.CENTER)
             self.active_profiles[i].connect("toggled", self.on_active_profile_toggled, i)
         self.active_profiles[self.current_active_profile - 1].set_active(True)
 
-        self.profile_name = [Gtk.Label() for i in range(6)]
+        self.profile_color_container = [Gdk.RGBA() for _ in range(6)]
+        self.set_default_colors()
+        self.colors = [Gtk.ColorButton() for _ in range(6)]
         for i in range(6):
-            label = "Profile " + str(i + 1)
-            self.profile_name[i].set_label(label)
-
-        self.profile_state = [Gtk.CheckButton() for i in range(6)]
-        for i in range(6):
-            self.profile_state[i].set_active(True if self.profile_states[i] == 1 else False)
-            self.profile_state[i].connect("toggled", self.on_state_toggled, i)
-            self.profile_state[i].set_halign(Gtk.Align.CENTER)
+            self.colors[i].connect("color-set", self.on_color_changed, i)
+            self.colors[i].set_rgba(self.profile_color_container[i])
 
         self.hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         self.vbox.pack_start(self.hbox, True, True, 0)
+
+        self.profiles = [Gtk.VBox(spacing=6) for _ in range(6)]
 
         for i in range(6):
             self.hbox.pack_start(self.profiles[i], True, True, 0)
@@ -115,14 +131,140 @@ class driver_frontend(Gtk.Window, driver_api):
         self.scheme_timer_combo.pack_start(self.renderer_text, True)
         self.scheme_timer_combo.add_attribute(self.renderer_text, "text", 0)
 
+        self.button_config_label = Gtk.Label()
+        self.button_config_label.set_label("Button config:")
+        self.button_config_label.set_halign(Gtk.Align.START)
+        self.vbox.pack_start(self.button_config_label, False, True, 0)
+
+        # Scroll wheel Functionality
+        self.scrollwheel_states = ["Volume", "Scroll"]
+        self.scrollwheel_state = Gtk.ListStore(str)
+        for state in self.scrollwheel_states:
+            self.scrollwheel_state.append([state])
+
+        self.hbox_wheel_func = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.vbox.pack_start(self.hbox_wheel_func, False, False, 0)
+
+        self.scrollwheel_label = Gtk.Label()
+        self.scrollwheel_label.set_label("Scroll wheel:")
+        self.hbox_wheel_func.pack_start(self.scrollwheel_label, False, False, 0)
+
+        self.scrollwheel = Gtk.ComboBox()
+        self.scrollwheel.set_model(self.scrollwheel_state)
+        self.scrollwheel.set_active(self.scrollwheel_states.index(self.current_scrollwheel_state))
+        self.scrollwheel.connect("changed", self.on_scrollwheel_state_changed)
+        self.hbox_wheel_func.pack_start(self.scrollwheel, True, True, 0)
+
+        self.scrollwheel_renderer_text = Gtk.CellRendererText()
+        self.scrollwheel.pack_start(self.scrollwheel_renderer_text, True)
+        self.scrollwheel.add_attribute(self.scrollwheel_renderer_text, "text", 0)
+
+        # Button Functionality
+        self.button_states = ["left", "middle", "right", "forward", "backward"]
+
+        self.button_state = Gtk.ListStore(str)
+        for state in self.button_states:
+            self.button_state.append([state])
+
+        # Left Button Functionality
+        self.hbox_left_button = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.vbox.pack_start(self.hbox_left_button, False, False, 0)
+
+        self.left_button_label = Gtk.Label()
+        self.left_button_label.set_label("Left Button:")
+        self.hbox_left_button.pack_start(self.left_button_label, False, False, 0)
+
+        self.left_button = Gtk.ComboBox()
+        self.left_button.set_model(self.button_state)
+        self.left_button.set_active(self.button_states.index(self.current_buttons_state["left"]))
+        self.left_button.connect("changed", self.on_left_button_state_changed)
+        self.hbox_left_button.pack_start(self.left_button, True, True, 0)
+
+        self.left_button_renderer_text = Gtk.CellRendererText()
+        self.left_button.pack_start(self.left_button_renderer_text, True)
+        self.left_button.add_attribute(self.left_button_renderer_text, "text", 0)
+
+        # Middle Button Functionality
+        self.hbox_middle_button = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.vbox.pack_start(self.hbox_middle_button, False, False, 0)
+
+        self.middle_button_label = Gtk.Label()
+        self.middle_button_label.set_label("Middle Button:")
+        self.hbox_middle_button.pack_start(self.middle_button_label, False, False, 0)
+
+        self.middle_button = Gtk.ComboBox()
+        self.middle_button.set_model(self.button_state)
+        self.middle_button.set_active(self.button_states.index(self.current_buttons_state["middle"]))
+        self.middle_button.connect("changed", self.on_middle_button_state_changed)
+        self.hbox_middle_button.pack_start(self.middle_button, True, True, 0)
+
+        self.middle_button_renderer_text = Gtk.CellRendererText()
+        self.middle_button.pack_start(self.middle_button_renderer_text, True)
+        self.middle_button.add_attribute(self.middle_button_renderer_text, "text", 0)
+
+        # Right Button Functionality
+        self.hbox_right_button = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.vbox.pack_start(self.hbox_right_button, False, False, 0)
+
+        self.right_button_label = Gtk.Label()
+        self.right_button_label.set_label("Right Button:")
+        self.hbox_right_button.pack_start(self.right_button_label, False, False, 0)
+
+        self.right_button = Gtk.ComboBox()
+        self.right_button.set_model(self.button_state)
+        self.right_button.set_active(self.button_states.index(self.current_buttons_state["right"]))
+        self.right_button.connect("changed", self.on_right_button_state_changed)
+        self.hbox_right_button.pack_start(self.right_button, True, True, 0)
+
+        self.right_button_renderer_text = Gtk.CellRendererText()
+        self.right_button.pack_start(self.right_button_renderer_text, True)
+        self.right_button.add_attribute(self.right_button_renderer_text, "text", 0)
+
+        # Forward Button Functionality
+        self.hbox_forward_button = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.vbox.pack_start(self.hbox_forward_button, False, False, 0)
+
+        self.forward_button_label = Gtk.Label()
+        self.forward_button_label.set_label("Forward Button:")
+        self.hbox_forward_button.pack_start(self.forward_button_label, False, False, 0)
+
+        self.forward_button = Gtk.ComboBox()
+        self.forward_button.set_model(self.button_state)
+        self.forward_button.set_active(self.button_states.index(self.current_buttons_state["forward"]))
+        self.forward_button.connect("changed", self.on_forward_button_state_changed)
+        self.hbox_forward_button.pack_start(self.forward_button, True, True, 0)
+
+        self.forward_button_renderer_text = Gtk.CellRendererText()
+        self.forward_button.pack_start(self.forward_button_renderer_text, True)
+        self.forward_button.add_attribute(self.forward_button_renderer_text, "text", 0)
+
+        # Backward Button Functionality
+        self.hbox_backward_button = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.vbox.pack_start(self.hbox_backward_button, False, False, 0)
+
+        self.backward_button_label = Gtk.Label()
+        self.backward_button_label.set_label("Backward Button:")
+        self.hbox_backward_button.pack_start(self.backward_button_label, False, False, 0)
+
+        self.backward_button = Gtk.ComboBox()
+        self.backward_button.set_model(self.button_state)
+        self.backward_button.set_active(self.button_states.index(self.current_buttons_state["backward"]))
+        self.backward_button.connect("changed", self.on_backward_button_state_changed)
+        self.hbox_backward_button.pack_start(self.backward_button, True, True, 0)
+
+        self.backward_button_renderer_text = Gtk.CellRendererText()
+        self.backward_button.pack_start(self.backward_button_renderer_text, True)
+        self.backward_button.add_attribute(self.backward_button_renderer_text, "text", 0)
+
         self.cyclic_colors_label = Gtk.Label()
+        self.cyclic_colors_label.set_margin_top(20)
         self.cyclic_colors_label.set_label("Colors active during cyclic color change:")
         self.cyclic_colors_label.set_halign(Gtk.Align.START)
         self.vbox.pack_start(self.cyclic_colors_label, False, True, 0)
 
         self.hbox_cyclic_color_state = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         self.vbox.pack_start(self.hbox_cyclic_color_state, False, True, 0)
-        self.cyclic_colors_state = [Gtk.CheckButton() for i in range(len(self.cyclic_colors))]
+        self.cyclic_colors_state = [Gtk.CheckButton() for _ in range(len(self.cyclic_colors))]
         prof = 0
         for colorname in self.cyclic_colors.keys():
             self.cyclic_colors_state[prof].set_label(colorname)
@@ -156,7 +298,10 @@ class driver_frontend(Gtk.Window, driver_api):
         alert.add_button("Close", Gtk.ResponseType.CLOSE)
         alert.props.use_markup = True
         if state == -1:
-            alert.set_markup('''Insufficient Permissions! Try adding a udev rule for your mouse, follow the guide <a href="https://wiki.archlinux.org/index.php/udev#Accessing_firmware_programmers_and_USB_virtual_comm_devicesrunning" title="Arch Wiki Guide">here</a>. Running as root will probably work too but not recommended''')
+            alert.set_markup('''Insufficient Permissions! Try adding a udev rule for your mouse, follow the guide <a 
+            href="https://wiki.archlinux.org/index.php/udev
+            #Accessing_firmware_programmers_and_USB_virtual_comm_devicesrunning" title="Arch Wiki Guide">here</a>. 
+            Running as root will probably work too but not recommended''')
             alert.run()
             alert.destroy()
         elif state == -2:
@@ -182,6 +327,8 @@ class driver_frontend(Gtk.Window, driver_api):
         config["Profile_Colors"] = dict(zip(profiles, self.profile_color_configs))
         config["Color_Scheme"] = {"type": self.rgb_color_change_scheme, "duration": self.current_scheme_timer}
         config["Cyclic_Colors"] = self.cyclic_colors
+        config["Scroll_Wheel"] = {"type": self.current_scrollwheel_state}
+        config["Button_Config"] = dict(zip(self.current_buttons_state.keys(), self.current_buttons_state.values()))
 
         with open(self.config_location, "w") as configfile:
             config.write(configfile)
@@ -223,6 +370,13 @@ class driver_frontend(Gtk.Window, driver_api):
             temp_keys[prof] = temp_keys[prof].capitalize()
             self.cyclic_colors[temp_keys[prof]] = int(temp_values[prof])
 
+        temp_dict = config["Scroll_Wheel"]
+        self.current_scrollwheel_state = temp_dict["type"]
+
+        temp_dict = config["Button_Config"]
+        for key, value in temp_dict.items():
+            self.current_buttons_state[key] = value
+
     def reconfigure_button_clicked(self, button):
         self.startup()
 
@@ -240,6 +394,31 @@ class driver_frontend(Gtk.Window, driver_api):
     def on_current_scheme_timer_changed(self, radio):
         timer = radio.get_active()
         self.current_scheme_timer = timer + 1
+
+    def on_scrollwheel_state_changed(self, combo):
+        tree_iter = combo.get_active_iter()
+        model = combo.get_model()
+        self.current_scrollwheel_state = model[tree_iter][0]
+
+    def on_button_state_changed(self, combo, button_name):
+        tree_iter = combo.get_active_iter()
+        model = combo.get_model()
+        self.current_buttons_state[button_name] = model[tree_iter][0]
+
+    def on_left_button_state_changed(self, combo):
+        self.on_button_state_changed(combo, "left")
+
+    def on_right_button_state_changed(self, combo):
+        self.on_button_state_changed(combo, "right")
+
+    def on_middle_button_state_changed(self, combo):
+        self.on_button_state_changed(combo, "middle")
+
+    def on_forward_button_state_changed(self, combo):
+        self.on_button_state_changed(combo, "forward")
+
+    def on_backward_button_state_changed(self, combo):
+        self.on_button_state_changed(combo, "backward")
 
     def on_apply_button_clicked(self, button):
         self.conquer()
@@ -259,6 +438,13 @@ class driver_frontend(Gtk.Window, driver_api):
             profile += 1
         config = self.create_rgb_lights_config(self.rgb_color_change_scheme, self.current_scheme_timer)
         self.send_payload(config)
+
+        config = self.create_scrollwheel_config(self.current_scrollwheel_state)
+        self.send_payload(config)
+
+        for button in self.current_buttons_state.keys():
+            config = self.create_button_config(button, self.current_buttons_state[button])
+            self.send_payload(config)
 
         self.liberate()
 

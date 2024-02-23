@@ -25,6 +25,13 @@ Run the file called driver_frontend.py using python
 `python driver_frontend.py`
 
 ## On a side note:
+Please check your product id and vendor id using `lsusb` and modify the `driver_backend.py` file accordingly if it is different from the default values.
+Here's an example of what the output of `lsusb` should look like:
+```
+Bus 001 Device 007: ID 18f8:0fc0 [Maxxter] USB GAMING MOUSE 
+```
+based on the above output, the vendor id is `18f8` and the product id is `0fc0`. If your output is different, modify the `driver_backend.py` file accordingly.
+
 Since python needs access to the usb device, it might require appropriate UDEV rules to be set up ([see here](https://wiki.archlinux.org/index.php/udev#Accessing_firmware_programmers_and_USB_virtual_comm_devices)) or the program may need to be run as root (absolutely not recommended).
 
 Running this should add the required UDEV rules for normal usage without sudo, a restart will most like be required for the changes to take effect.
@@ -50,4 +57,4 @@ The current configuration you have set will be saved when the `save configuratio
 
 #### It should look similar to this (depends on gtk theme):
 
-![example](https://i.imgur.com/mAXCjX2.png)
+![example](https://i.imgur.com/nSshQe8.png)

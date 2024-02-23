@@ -21,7 +21,7 @@ class Driver(object):
 
         self.supported_dpis = [200, 400, 600, 800, 1000, 1200, 1600, 2000, 2400, 3200, 4000, 4800]
 
-    def initPayload(self, instruction_code):
+    def init_payload(self, instruction_code):
         payload = [0x07, instruction_code]
         return payload
 
@@ -67,7 +67,7 @@ class Driver(object):
             list.append(0x00)
 
     def create_rgb_lights_config(self, changing_scheme, time_duration):
-        payload = self.initPayload(0x13)
+        payload = self.init_payload(0x13)
         payload.append(self.set_cyclic_colors())
 
         if changing_scheme == "Fixed":
@@ -83,16 +83,26 @@ class Driver(object):
         return payload
 
     def create_scrollwheel_config(self, state):
-        payload = self.initPayload(0x11)
+        payload = self.init_payload(0x11)
         if state == "Volume":
             payload.append(0x01)
         else:
             payload.append(0x00)
         self.addzerobytes(payload, 5)
-        return(payload)
+        return payload
+
+    def create_button_config(self, source, target):
+        button_mapping = {"left": 0x01, "middle": 0x02, "right": 0x03, "forward": 0x05, "backward": 0x04}
+
+        payload = self.init_payload(0x10)
+        payload.append(button_mapping[source])
+        payload.append(button_mapping[target])
+        self.addzerobytes(payload, 4)
+
+        return payload
 
     def create_dpi_profile_config(self, DPI, profile_to_modify):
-        payload = self.initPayload(0x09)
+        payload = self.init_payload(0x09)
         payload.append(0x40 - 1 + self.current_active_profile)
         payload.append(self.set_dpi_this_profile(DPI, profile_to_modify))
         payload.append(self.set_active_profiles())
@@ -102,7 +112,7 @@ class Driver(object):
         return payload
 
     def create_color_profile_config(self, profile, red, green, blue):
-        payload = self.initPayload(0x14)
+        payload = self.init_payload(0x14)
         internal_profile = (profile - 1) * 2
         internal_red = int((255 - red) / 16)
         internal_green = int((255 - green) / 16)
@@ -179,7 +189,7 @@ class Driver(object):
         return best_match
 
 
-class Driver_API(Driver):
+class DriverApi(Driver):
     """The sole purpose of this class is to give the frontend access to the Driver
     class. Unless present the super().__init__ call defaults to the Gtk.Wondow
     class according to the MRO"""
