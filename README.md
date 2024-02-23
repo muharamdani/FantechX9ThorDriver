@@ -1,60 +1,66 @@
-# Driver for Fantech X9 Thor
+# Fantech X9 Thor RGB Gaming Mouse Driver
 
-This is an open-source driver for the Fantech X9 Thor RGB gaming mouse targeted for linux systems (although it should work in any environment that supports gtk).
+This open-source driver, designed for Linux systems (also compatible with environments supporting GTK), enables enhanced control of the Fantech X9 Thor RGB gaming mouse.
 
 ### Requirements
 
-The project is written in python3 so that's a core requirement. 
+Ensure you have the following prerequisites:
 
-`Gtk3` and `gobject-introspection` are required for the GUI to work, refer to your distro's documentation on how to get those installed, although a lot of popular distros will have it pre-installed so you can skip this if it is.
-
-The following python module is also required:
-1. `pyusb`
-
-To install the module simply running `pip install pyusb` should suffice (if you don't have pip refer to your distro's documentation on how to get it).
-
-Some distros (like arch) also provide standalone packages that will install pyusb to your system so search in your repos if you'd prefer your package manager to handle it for you instead of pip.
+- Python 3
+- `Gtk3` and `gobject-introspection` (check your distro's documentation)
+- Python module: `pyusb` (install with `pip install pyusb`)
 
 ### Usage
-Simply clone the repo using git.
 
-`git clone https://github.com/muharamdani/FantechX9ThorDriver.git`
+Clone the repository:
 
-Run the file called driver_frontend.py using python
-
-`python driver_frontend.py`
-
-## On a side note:
-Please check your product id and vendor id using `lsusb` and modify the `driver_backend.py` file accordingly if it is different from the default values.
-Here's an example of what the output of `lsusb` should look like:
+```bash
+git clone https://github.com/muharamdani/FantechX9ThorDriver.git
 ```
-Bus 001 Device 007: ID 18f8:0fc0 [Maxxter] USB GAMING MOUSE 
+
+Run the driver frontend:
+
+```bash
+python3 driver_frontend.py
 ```
-based on the above output, the vendor id is `18f8` and the product id is `0fc0`. If your output is different, modify the `driver_backend.py` file accordingly.
 
-Since python needs access to the usb device, it might require appropriate UDEV rules to be set up ([see here](https://wiki.archlinux.org/index.php/udev#Accessing_firmware_programmers_and_USB_virtual_comm_devices)) or the program may need to be run as root (absolutely not recommended).
+### Configuration
 
-Running this should add the required UDEV rules for normal usage without sudo, a restart will most like be required for the changes to take effect.
+Check your mouse's product ID and vendor ID using `lsusb`. Modify `driver_backend.py` if different from defaults. Example:
 
+```bash
+Bus 001 Device 007: ID 18f8:0fc0 [Maxxter] USB GAMING MOUSE
 ```
+
+Vendor ID: `18f8`, Product ID: `0fc0`
+
+### USB Device Access
+
+For proper USB device access:
+
+1. Set UDEV rules (recommended method):
+
+```bash
 echo "SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"18f8\", ATTRS{idProduct}==\"0fc0\", GROUP=\"users\", MODE=\"0660\"" | sudo tee /etc/udev/rules.d/50-fantechdriver.rules
 ```
 
-This requires your system to have a group called `users` and your current user also needs to be added to the group. You could also modify the above command to add the permission to a group you're already a part of by modifiying "users" to the appropriate group name.
+Ensure your system has a group named `users`, and your user is part of this group.
 
-If you want to go the recommended route and dont have a group called `users` or are not added to the group then run:
+2. Alternative method (not recommended):
+
+Run as root (not recommended for security reasons):
+
+```bash
+sudo python driver_frontend.py
 ```
-sudo groupadd users
-sudo usermod -a -G users your_user_name
-```
-After which you'll need to logout and log back in, or restart for good measure.
 
-Another way is running it like this: `sudo python driver_frontend.py` (but again this is absolutely not recommended, use at your own risk).
+### Configuration Persistence
 
-Since the project is written in python you can simply download the 2 files (driver_backend.py and driver_frontend.py) to the same folder and achieve the same functionality.
+The current configuration is saved in **driver.conf** upon pressing the "Save Configuration" button.
 
-The current configuration you have set will be saved when the `save configuration` button is pressed, in a file called **driver.conf** in the same folder the program is run from.
-
-#### It should look similar to this (depends on gtk theme):
+#### Preview:
 
 ![example](https://i.imgur.com/nSshQe8.png)
+
+### License
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
