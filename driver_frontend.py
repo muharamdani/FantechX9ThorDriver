@@ -30,7 +30,7 @@ class driver_frontend(Gtk.Window, driver_api):
         self.current_active_profile = 3
         self.rgb_color_change_scheme = "Cyclic"
         self.current_scheme_timer = 1
-        self.current_scrollwheel_state = "Volume"
+        self.current_scrollwheel_state = "Scroll"
         self.current_buttons_state = {
             "left": "left",
             "right": "right",
